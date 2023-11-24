@@ -128,6 +128,10 @@ int main(int argc, char *argv[]) {
     // Send 1 char at a time from plaintext to server
     char buffer[3]; // Buffer to hold two characters and a null terminator
     for (i = 0; i < plaintextSize; i += 1) {
+        // Check if we reached end of plaintext
+        if (plaintext[i] == '\0') {
+            break;
+        }
         // If plaintext has space character, send it to server still
         if (plaintext[i] == ' ') {
             buffer[0] = ' ';
@@ -152,17 +156,16 @@ int main(int argc, char *argv[]) {
                 printf("CLIENT: WARNING: Not all data written to socket!\n");
             }
         }
+        // Get return message from server
+        // Clear out the buffer again for reuse
+        memset(buffer, '\0', sizeof(buffer));
+        // Read data from the socket, leaving \0 at end
+        charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0); 
+        if (charsRead < 0){
+            error("CLIENT: ERROR reading from socket");
+        }
+        printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
     }
-    
-    // Get return message from server
-    // Clear out the buffer again for reuse
-    memset(buffer, '\0', sizeof(buffer));
-    // Read data from the socket, leaving \0 at end
-    charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0); 
-    if (charsRead < 0){
-        error("CLIENT: ERROR reading from socket");
-    }
-    printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
 
     // Close the socket
     close(socketFD); 
