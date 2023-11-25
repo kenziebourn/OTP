@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
     plaintext[plaintextSize] = '\0'; // Null-terminate the string
     fclose(plaintextFile);
 
-    printf("CLIENT: plaintext: %s\n",plaintext); // debugging
+    //printf("CLIENT: plaintext: %s\n",plaintext); // debugging
 
     // Process key file
     FILE *keyFile = fopen(argv[2], "r");
@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
             buffer[2] = '\0'; // Null-terminate the string
 
             /*Debugging*/
-            printf("CLIENT: buffer chars: %s\n",buffer);
+            //printf("CLIENT: buffer chars: %s\n",buffer);
             // Send the buffer to the server
             charsWritten = send(socketFD, buffer, strlen(buffer), 0); 
             if (charsWritten < 0){
@@ -160,13 +160,22 @@ int main(int argc, char *argv[]) {
         // Clear out the buffer again for reuse
         memset(buffer, '\0', sizeof(buffer));
         // Read data from the socket, leaving \0 at end
-        charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0); 
+        // Create buffer holding data from server
+        char sbuffer[5];
+        ssize_t charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0);
         if (charsRead < 0){
             error("CLIENT: ERROR reading from socket");
         }
-        printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
-    }
+        // Null-terminate the received message
+        buffer[charsRead] = '\0';
 
+        // Print out the received message
+        //printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
+        fprintf(stdout, "%s", buffer);
+    }
+    // Print newline at end of output
+    putchar('\n');
+    
     // Close the socket
     close(socketFD); 
     return 0;

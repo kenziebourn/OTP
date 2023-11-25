@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+const char* ALLOWED_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+
 // Error function used for reporting issues
 void error(const char *msg) {
   perror(msg);
@@ -25,6 +27,32 @@ void setupAddressStruct(struct sockaddr_in* address,
   address->sin_port = htons(portNumber);
   // Allow a client at any address to connect to this server
   address->sin_addr.s_addr = INADDR_ANY;
+}
+
+// Converts a character to its corresponding integer value
+int charToInt(char c) {
+  if (c >= 'A' && c <= 'Z') {
+      return c - 'A';
+  } else if (c == ' ') {
+      return 26;
+  } else {
+      // Handle invalid characters
+      return -1;
+  }
+}
+
+// Converts an integer to its corresponding character value
+char intToChar(int i) {
+  // If the integer is negative, add 27 to make it positive
+  if (i < 0) {
+      i += 27;
+  }
+  // If the integer is greater than 26, subtract 27 to wrap it around
+  else if (i > 26) {
+      i -= 27;
+  }
+  // Return the character at the corresponding index in the ALLOWED_CHARACTERS array
+  return ALLOWED_CHARACTERS[i];
 }
 
 int main(int argc, char *argv[]){
@@ -75,10 +103,26 @@ int main(int argc, char *argv[]){
     // Get the message from the client and display it
     memset(buffer, '\0', 256);
 
-    // Read the client's message from the socket
+    char ciphertext[256]; // holds the result of final ciphertext to send back to client
+
+    // Read the client's message from the socket and map them to their integer values
     while ((charsRead = recv(connectionSocket, buffer, sizeof(buffer) - 1, 0)) > 0) {
       printf("SERVER: I received this from the client: \"%s\"\n", buffer);
-      send(connectionSocket, buffer, strlen(buffer), 0);
+      memset(ciphertext, '\0', sizeof(ciphertext));  // Clear the ciphertext string
+      for (int i = 0; i < charsRead; i += 2) {
+        char plaintextChar = buffer[i];
+        char keyChar = buffer[i+1];
+        // Convert plaintext char and key char to their integer representations
+        int encryptedChar1 = charToInt(plaintextChar);
+        int encryptedChar2 = charToInt(keyChar);
+        // Add the two integers together and mod 27 to get the encrpyted character index
+        int sum = (encryptedChar1 + encryptedChar2) % 27;  // Sum of the two encrypted characters
+        //printf("SERVER: Sum: %d\n", sum); // debugging
+        char encryptedChar = intToChar(sum);  // Convert the sum back to a character
+        //printf("SERVER: Encrypted char: %c\n", encryptedChar); // debugging
+        strncat(ciphertext, &encryptedChar, 1);  // Append the encrypted character to the ciphertext string
+      }
+      send(connectionSocket, ciphertext, strlen(ciphertext), 0);  // Send the ciphertext string to the client
     }
     // Close the connection socket for this client
     close(connectionSocket); 
