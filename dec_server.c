@@ -11,6 +11,7 @@ Thus, it returns plaintext again to dec_client.*/
 #include <netinet/in.h>
 
 const char* ALLOWED_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+#define HANDSHAKE_MSG "DEC"
 
 // Error function used for reporting issues
 void error(const char *msg) {
@@ -98,6 +99,25 @@ int main(int argc, char *argv[]){
                 &sizeOfClientInfo); 
     if (connectionSocket < 0){
       error("ERROR on accept");
+    }
+
+    // Wait for the handshake message
+    char buff[4];
+    memset(buff, '\0', sizeof(buff));
+    if (recv(connectionSocket, buff, sizeof(buff) - 1, 0) < 0) {
+        perror("SERVER: ERROR reading from socket");
+    }
+
+    // Check the handshake message
+    if (strcmp(buff, HANDSHAKE_MSG) != 0) {
+        perror("SERVER: Received wrong handshake message");
+        close(connectionSocket);
+        continue;
+    }
+
+    // Send the ACK message
+    if (send(connectionSocket, HANDSHAKE_MSG, strlen(HANDSHAKE_MSG), 0) < 0) {
+        perror("SERVER: Failed to send ACK message");
     }
 
     printf("SERVER: Connected to client running at host %d port %d\n", 

@@ -57,6 +57,30 @@ int main(int argc, char *argv[]) {
     if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){
         error("CLIENT: ERROR connecting");
     }
+    
+    // Handshake process
+    #define HANDSHAKE_MSG "DEC"
+
+    // Send the handshake message
+    if (send(socketFD, HANDSHAKE_MSG, strlen(HANDSHAKE_MSG), 0) < 0) {
+        fprintf(stderr, "Failed to send handshake message, attempted port: %s\n", argv[3]);
+        exit(2);
+    }
+
+    // Wait for the ACK message
+    char buff[4];
+    memset(buff, '\0', sizeof(buff));
+    if (recv(socketFD, buff, sizeof(buff) - 1, 0) < 0) {
+        fprintf(stderr, "Failed to receive ACK message, attempted port: %s\n", argv[3]);
+        exit(2);
+    }
+
+    // Check the ACK message
+    if (strcmp(buff, HANDSHAKE_MSG) != 0) {
+        fprintf(stderr, "Received wrong ACK message, attempted port: %s\n", argv[3]);
+        exit(2);
+    }
+
     // Process plaintext file
     FILE *plaintextFile = fopen(argv[1], "r");
     if (plaintextFile == NULL) {
